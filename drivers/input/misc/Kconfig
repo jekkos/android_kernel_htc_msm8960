@@ -696,11 +696,38 @@ config SENSORS_PANASONIC_GYRO
 	help
 	  Panasonic gyroscope driver for HTC
 
+config CIR_ALWAYS_READY
+        bool "BMA250 CIR Always Ready"
+	default n
+	help
+	  Enable CIR Always Ready
+
 config SENSORS_BMA250
 	tristate "BMA250 accelerometer sensor support"
 	depends on I2C
 	help
 	  BMA250 G-sensor driver for HTC
+
+config BOSCH_BMA250_ENABLE_INT1
+	tristate "BMA250 acceleration sensor interrupt INT1 support"
+	depends on SENSORS_BMA250_BOSCH=y
+        help
+	  If you say yes here you get INT1 support for Bosch Sensortec's
+	  acceleration sensors BMA250.
+
+config BOSCH_BMA250_ENABLE_INT2
+	tristate "BMA250 acceleration sensor interrupt INT2 support"
+	depends on SENSORS_BMA250_BOSCH=y
+	help
+	  If you say yes here you get INT2 support for Bosch Sensortec's
+	  acceleration sensors BMA250.
+
+config BMA250_WAKE_OPTIONS
+	tristate "BMA250 acceleration sensor wake options support"
+	depends on SENSORS_BMA250_BOSCH=y
+	help
+	  If you say yes here you get Wake option support for
+	  acceleration sensors BMA250.
 
 config SENSORS_BMA250_BOSCH
 	tristate "BMA250 accelerometer sensor support (M7)"
