@@ -749,6 +749,18 @@ config INPUT_CAPELLA_CM3629
 	  Say Y here to enable the CM3629 short distance proximity
 	  sensor with ambient light sensor.
 
+config WSENSOR_ENABLE
+	tristate "CM3629 proximity and light sensor"
+	help
+	  Say Y here to enable the CM3629 Short Distance Proximity
+	  Sensor with Ambient Light Sensor.
+
+config PSENSOR_KTHRESHOLD
+	tristate "CM3629 proximity and light sensor"
+	help
+	  Say Y here to enable the CM3629 Proximity Sensor
+	  set or get threshold value from emmc.
+
 config SENSORS_R3GD20
 	tristate "ST R3GD20 3-axis gyroscope"
 	depends on I2C

@@ -201,7 +201,7 @@ static int I2C_RxData_2(char *rxData, int length)
 
 		D("[PS][cm3629 warning] %s, i2c err, ISR gpio %d\n",
 				__func__, lpi->intr_pin);
-		usleep(10);
+		msleep(10);
 	}
 
 	if (loop_i >= I2C_RETRY_COUNT) {
@@ -232,7 +232,7 @@ static int I2C_TxData(uint16_t slaveAddr, uint8_t *txData, int length)
 		D("[PS][cm3629 warning] %s, i2c err, slaveAddr 0x%x, register 0x%x, value 0x%x, ISR gpio%d, record_init_fail %d\n",
 				__func__, slaveAddr, txData[0], txData[1], lpi->intr_pin, record_init_fail);
 
-		usleep(10);
+		msleep(10);
 	}
 
 	if (loop_i >= I2C_RETRY_COUNT) {
@@ -1159,6 +1159,7 @@ static int psensor_enable(struct cm3629_info *lpi)
 	if (lpi->dynamical_threshold == 1 && lpi->mfg_mode != MFG_MODE &&
 		pocket_mode_flag != 1 && psensor_enable_by_touch != 1 ) {
 
+			msleep(40);
 			ret = get_stable_ps_adc_value(&ps_adc1, &ps_adc2);
 			while (index <= 10 && ps_adc1 == 0) {
 				D("[PS][cm3629]ps_adca = 0 retry");
@@ -1499,6 +1500,10 @@ static int lightsensor_enable(struct cm3629_info *lpi)
 		"[LS][cm3629 error]%s: set auto light sensor fail\n",
 		__func__);
 	else {
+		if (lpi->mfg_mode != MFG_MODE)
+			msleep(160);
+		else
+			msleep(85);
 		input_report_abs(lpi->ls_input_dev, ABS_MISC, -1);
 		input_sync(lpi->ls_input_dev);
 		report_lsensor_input_event(lpi, 1);
@@ -2257,7 +2262,7 @@ static ssize_t ls_fLevel_store(struct device *dev,
 	input_sync(lpi->ls_input_dev);
 	printk(KERN_INFO "[LS]set fLevel = %d\n", f_cm3629_level);
 
-	hr_msleep(1000);
+	msleep(1000);
 	f_cm3629_level = -1;
 	return count;
 }
@@ -2529,11 +2534,11 @@ int power_key_check_in_pocket(int check_dark)
 	int ls_level = 0;
 	int i;
 	uint8_t ps1_adc = 0;
-#if 0
+//#if 0
 	uint8_t ps2_adc = 0;
 	int ret = 0;
 
-#endif
+//#endif
 	if (!is_probe_success) {
 		D("[cm3629] %s return by cm3629 probe fail\n", __func__);
 		return 0;
@@ -2561,17 +2566,18 @@ int power_key_check_in_pocket(int check_dark)
 	psensor_enable(lpi);
 // don't use new method of Sense5.5 for pocket near detection. 
 // too high threshold here for nearness
-#if 0
+//#if 0
 	ret = get_ps_adc_value(&ps1_adc, &ps2_adc);
-	if (ps1_adc > pocket_thd)
+	printk("POCKET ADC : %d ", ps1_adc);
+	if (ps1_adc >= 6) // fix up for checking other materials than human body, needs a very low threshold 6+ to 240
 		ps_near = 1;
 	else
 		ps_near = 0;
-#endif
+//#endif
 	D("[cm3629] %s ps1_adc = %d, pocket_thd = %d, ps_near = %d\n", __func__, ps1_adc, pocket_thd, ps_near);
 	psensor_disable(lpi);
 	pocket_mode_flag = 0;
-	return ((check_dark && ls_dark && ps_near) || (!check_dark && ps_near));
+	return ((check_dark && ls_dark && ps_near) || (!check_dark && (ps_near)));//||ls_dark)));
 }
 
 int psensor_enable_by_touch_driver(int on)
@@ -2600,9 +2606,9 @@ static int cm3629_read_chip_id(struct cm3629_info *lpi)
 	int ret = 0;
 
 	als_power(0);
-	hr_msleep(5);
+	msleep(5);
 	als_power(1);
-	hr_msleep(5);
+	msleep(5);
 
 	ret = _cm3629_I2C_Read2(lpi->cm3629_slave_address, CH_ID, chip_id, 2);
 	if (ret >= 0) {
