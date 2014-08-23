@@ -15,7 +15,6 @@
 #include <mach/msm_iomap.h>
 #include <linux/i2c.h>
 #include <linux/delay.h>
-#include <linux/earlysuspend.h>
 #include <linux/platform_device.h>
 #include <linux/workqueue.h>
 #include <linux/leds.h>
@@ -35,7 +34,6 @@
 
 struct tps61310_data {
 	struct led_classdev 		fl_lcdev;
-	struct early_suspend		fl_early_suspend;
 	enum flashlight_mode_flags 	mode_status;
 	uint32_t			flash_sw_timeout;
 	struct mutex 			tps61310_data_mutex;
@@ -215,6 +213,41 @@ int tps61310_flashlight_control(int mode)
 		gpio_set_value_cansleep(this_tps61310->strb1, 1);
 		tps61310_i2c_command(0x01, 0x40);
 	break;
+	case FL_MODE_VIDEO_TORCH:
+		tps61310_i2c_command(0x05, 0x6A);
+		tps61310_i2c_command(0x00, 0x04);
+		gpio_set_value_cansleep(this_tps61310->strb0, 0);
+		gpio_set_value_cansleep(this_tps61310->strb1, 1);
+		tps61310_i2c_command(0x01, 0x40);
+	break;
+	case FL_MODE_VIDEO_TORCH_1:
+		tps61310_i2c_command(0x05, 0x6A);
+		tps61310_i2c_command(0x00, 0x01);
+		gpio_set_value_cansleep(this_tps61310->strb0, 0);
+		gpio_set_value_cansleep(this_tps61310->strb1, 1);
+		tps61310_i2c_command(0x01, 0x40);
+	break;
+	case FL_MODE_VIDEO_TORCH_2:
+		tps61310_i2c_command(0x05, 0x6A);
+		tps61310_i2c_command(0x00, 0x02);
+		gpio_set_value_cansleep(this_tps61310->strb0, 0);
+		gpio_set_value_cansleep(this_tps61310->strb1, 1);
+		tps61310_i2c_command(0x01, 0x40);
+	break;
+	case FL_MODE_VIDEO_TORCH_3:
+		tps61310_i2c_command(0x05, 0x6A);
+		tps61310_i2c_command(0x00, 0x03);
+		gpio_set_value_cansleep(this_tps61310->strb0, 0);
+		gpio_set_value_cansleep(this_tps61310->strb1, 1);
+		tps61310_i2c_command(0x01, 0x40);
+	break;
+	case FL_MODE_VIDEO_TORCH_4:
+		tps61310_i2c_command(0x05, 0x6A);
+		tps61310_i2c_command(0x00, 0x04);
+		gpio_set_value_cansleep(this_tps61310->strb0, 0);
+		gpio_set_value_cansleep(this_tps61310->strb1, 1);
+		tps61310_i2c_command(0x01, 0x40);
+	break;
 	case FL_MODE_TORCH:
 		tps61310_i2c_command(0x05, 0x6A);
 		tps61310_i2c_command(0x00, 0x05);
@@ -334,6 +367,13 @@ int tps61310_flashlight_control(int mode)
 		gpio_set_value_cansleep(this_tps61310->strb1, 1);
 		tps61310_i2c_command(0x01, 0x40);
 	break;
+	case FL_MODE_VIDEO_TORCH:
+		tps61310_i2c_command(0x05, 0x6B);
+		tps61310_i2c_command(0x00, 0x12);
+		gpio_set_value_cansleep(this_tps61310->strb0, 0);
+		gpio_set_value_cansleep(this_tps61310->strb1, 1);
+		tps61310_i2c_command(0x01, 0x40);
+	break;
 	case FL_MODE_TORCH:
 		tps61310_i2c_command(0x05, 0x6B);
 		tps61310_i2c_command(0x00, 0x1B);
@@ -438,17 +478,6 @@ static void fl_lcdev_brightness_set(struct led_classdev *led_cdev,
 	}
 }
 
-static void flashlight_early_suspend(struct early_suspend *handler)
-{
-	FLT_INFO_LOG("%s\n", __func__);
-	if (this_tps61310 != NULL && this_tps61310->mode_status)
-		flashlight_turn_off();
-}
-
-static void flashlight_late_resume(struct early_suspend *handler)
-{
-}
-
 static void flashlight_turn_off_work(struct work_struct *work)
 {
 	FLT_INFO_LOG("%s\n", __func__);
@@ -510,11 +539,6 @@ static int tps61310_probe(struct i2c_client *client,
 		goto platform_data_null;
 	}
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	tps61310->fl_early_suspend.suspend = flashlight_early_suspend;
-	tps61310->fl_early_suspend.resume  = flashlight_late_resume;
-	register_early_suspend(&tps61310->fl_early_suspend);
-#endif
 	this_tps61310 = tps61310;
 
 	err = device_create_file(tps61310->fl_lcdev.dev, &dev_attr_function_switch);
@@ -546,7 +570,6 @@ static int tps61310_remove(struct i2c_client *client)
 	led_classdev_unregister(&tps61310->fl_lcdev);
 	destroy_workqueue(tps61310_work_queue);
 	mutex_destroy(&tps61310_mutex);
-	unregister_early_suspend(&tps61310->fl_early_suspend);
 	kfree(tps61310);
 
 	FLT_INFO_LOG("%s:\n", __func__);
@@ -569,6 +592,7 @@ static int tps61310_suspend(struct i2c_client *client, pm_message_t state)
 {
 
 		FLT_INFO_LOG("%s:\n", __func__);
+		flashlight_turn_off();
 		if (this_tps61310->mode_pin_suspend_state_low)
 			gpio_set_value_cansleep(this_tps61310->strb1, 0);
 
