@@ -2446,7 +2446,7 @@ static void bma250_set_enable(struct device *dev, int enable)
 			cancel_delayed_work_sync(&bma250->work);
 			atomic_set(&bma250->enable, 0);
 		}
-
+#ifdef CONFIG_BMA250_WAKE_OPTIONS
 #ifdef CONFIG_CIR_ALWAYS_READY
 		if (bma250->pdata->power_LPM && !cir_flag)
 #else
@@ -2455,6 +2455,7 @@ static void bma250_set_enable(struct device *dev, int enable)
 #endif
 			if (keep_sensor_on() == 0)
 				bma250->pdata->power_LPM(1);
+#endif
 	}
 
 	if ((bma250->pdata->gs_kvalue & (0x67 << 24)) != (0x67 << 24)) {
@@ -3579,6 +3580,7 @@ ssize_t bma250_setup_interrupt_for_wake(struct bma250_data *bma250) {
 
 	    error = bma250_set_Int_Mode(bma250->bma250_client, 1);
 
+#ifdef CONFIG_BMA250_WAKE_OPTIONS
 	    if (PICK_WAKE_ENABLED == 1) {
 		error += bma250_set_slope_duration(bma250->bma250_client, 0x01);
 		error += bma250_set_slope_threshold(bma250->bma250_client, 0x07); // original 0x07
@@ -3592,10 +3594,13 @@ ssize_t bma250_setup_interrupt_for_wake(struct bma250_data *bma250) {
 //	    error +  bma250_set_slope_threshold(bma250->bma250_client, 0x07); // original 0x07
 		error += bma250_set_slope_threshold(bma250->bma250_client, FLICK_WAKE_SENSITIVITY==0?140:110); // higher threshold to only detect heavy motion through interrupt, less wake
 		// only Y (0,1,0)
+#endif
 		error += bma250_set_Int_Enable(bma250->bma250_client, 5, 0);
 		error += bma250_set_Int_Enable(bma250->bma250_client, 6, 1);
 		error += bma250_set_Int_Enable(bma250->bma250_client, 7, 0);
+#ifdef CONFIG_BMA250_WAKE_OPTIONS
 	    }
+#endif
 	    error += bma250_set_int1_pad_sel(bma250->bma250_client, PAD_SLOP);
 
 	    error += bma250_set_mode(bma250->bma250_client, BMA250_MODE_NORMAL);
@@ -4266,6 +4271,7 @@ static int bma250_suspend(struct i2c_client *client, pm_message_t mesg)
 	}
 	mutex_unlock(&data->enable_mutex);
 
+#ifdef CONFIG_BMA250_WAKE_OPTIONS
 #ifdef CONFIG_CIR_ALWAYS_READY
 	
 	if (data && (data->pdata->power_LPM) && !cir_flag){
@@ -4279,7 +4285,7 @@ static int bma250_suspend(struct i2c_client *client, pm_message_t mesg)
 			data->pdata->power_LPM(1);
 		}
 	}
-
+#endif
 	return 0;
 }
 
